@@ -1,9 +1,34 @@
-yaml
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+title: Intrinsic Successive Convexification
+message: >-
+  Intrinsic Successive Convexification: Trajectory
+  Optimization on Smooth Manifolds
+type: software
 authors:
-  - family-names: "Kraisler"
-    given-names: "Spencer"
-title: "Intrinsic Successive Convexification: Trajectory Optimization on Smooth Manifolds"
-
+  - given-names: Spencer
+    family-names: Kraisler
+    email: kraisler@uw.edu
+    affiliation: University of Washington Aerospace
+    orcid: 'https://orcid.org/0009-0009-4674-0104'
+repository-code: 'https://github.com/Rainlabuw/intrinsic-scvx'
+abstract: >-
+  A fundamental issue core to trajectory optimization on
+  smooth manifolds is handling the implicit manifold
+  constraint within the dynamics. The straightforward
+  approach is to simply enforce the dynamic model as a
+  constraint. However, we show this approach often leads to
+  significantly redundant operations, as well as being
+  heavily dependent on the representation. Specifically, we
+  propose an intrinsic successive convexification
+  methodology to solve optimal control problems for
+  dynamical systems whose state space is a smooth manifold.
+  This so-called iSCvx is then applied to a representative
+  example involving attitude trajectory optimization for a
+  spacecraft subject to non-convex constraints.
+keywords:
+  - trajectory-optimization
+  - riemannian-optimization
+  - successive-convexification
