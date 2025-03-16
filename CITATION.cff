@@ -1,0 +1,9 @@
+yaml
+
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Kraisler"
+    given-names: "Spencer"
+title: "Intrinsic Successive Convexification: Trajectory Optimization on Smooth Manifolds"
+
