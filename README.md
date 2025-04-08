@@ -37,7 +37,13 @@ This procedure of iteratively refining the convex approximations is the essence 
 
 ## What is Intrinsic SCvx?
 
-In the classical setting, SCvx is typically applied to Euclidean spaces. However, in many real-world applications, the state space of many robotic systems is non-Euclidean. For instance, as a rigid body, the state space of a rocket lies in $$\mathbb{R}^3 \times SO(3) \times \mathbb{R}^3 \times \mathbb{R}^3$$ which we heavily use in this repo. And while many assume the rocket thrust is directly adjustable, in reality, only the direction is adjustible while the magnitude must remain constant during certain stages. As a result, the control input is modeled as a point in the unit sphere $S^2$. Similarly, robot arms often operate in a Lie group state space. 
+In the classical setting, SCvx is typically applied to Euclidean spaces. However, in many real-world applications, the state space of many robotic systems is non-Euclidean. For instance, as a rigid body, the state space of a rocket lies in $$\mathbb{R}^3 \times SO(3) \times \mathbb{R}^3 \times \mathbb{R}^3$$ which we heavily use in this repo. 
+
+Consider also a satellite subjected to a keep-out zone constraint. That is, a fixed body-frame direction $y_b$ must never point towards a particular region:
+
+![boresight](media/boresight.jpg)
+
+This constraint is defined over the unit sphere $S^2$.Moreover, robot arms operate in a Lie group state space. 
 
 In my work, I explore how the SCvx paradigm can be extended to a Riemannian manifold setting. I demonstrate this generalization not only enhances the speed and robustness of the SCvx procedure, but also leads to more optimal trajectories that better satisfy the given constraints. This is evidenced by both the theoretical results presented in the paper and the experimental outcomes found in the accompanying code, particularly the plots in the `media/` directory.
 
