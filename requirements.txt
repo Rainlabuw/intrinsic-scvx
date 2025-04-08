@@ -1,0 +1,5 @@
+numpy>=1.21.0
+matplotlib>=3.4.2
+cvxpy>=1.5.3
+sympy>=1.13.3
+pillow>=11.1.0
