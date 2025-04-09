@@ -676,6 +676,15 @@ def quat_mult_matrix(q: np.ndarray) -> np.ndarray:
     ])
     return q_mult
 
+def right_quat_mult_matrix(q):
+    q_w, q_x, q_y, q_z = q[0], q[1], q[2], q[3]
+    return np.array([
+        [q_w, -q_x, -q_y, -q_z],
+        [q_x,  q_w,  q_z, -q_y],
+        [q_y, -q_z,  q_w,  q_x],
+        [q_z,  q_y, -q_x,  q_w]
+    ])
+
 def quat_frame(q: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute orthonormal basis for quaternion tangent space.
 
@@ -726,3 +735,20 @@ def frame(x: np.ndarray) -> np.ndarray:
     f11 = np.concatenate([zeros3, zeros3, zeros4, e2])
     f12 = np.concatenate([zeros3, zeros3, zeros4, e3])
     return np.array([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12]).T
+
+def quat_rotate(q, v):
+    q_mult = quat_mult_matrix(q)
+    pure_v = np.zeros(4)
+    pure_v[1:] = v
+    inv_q = conj(q)
+    q_v = q_mult @ v
+    q_v_mult = quat_mult_matrix(q_v)
+    q_v_inv_q = q_v_mult @ inv_q
+    return q_v_inv_q[1:]
+
+def sq_dist(q, p):
+    inv_q = conj(q)
+    inv_q_mult = quat_mult_matrix(inv_q)
+    error = inv_q_mult @ p
+    log_error = log(error)
+    return np.linalg.norm(log_error)

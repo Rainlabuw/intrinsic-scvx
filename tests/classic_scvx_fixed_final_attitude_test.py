@@ -2,16 +2,15 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.Model import ClassicPoweredDescentModel_FixedFinalAttitude
+from src.models import ClassicPoweredDescentModel_FixedFinalAttitude
 import matplotlib.pyplot as plt
-from src.parameters import SCvxParameters, PoweredDescentParameters
-from src.SCvx import ClassicSCvx_FixedFinalAttitude
+from src.parameters import PoweredDescentParameters
+from src.algorithms import ClassicSCvx_FixedFinalAttitude
 
-algo_params = SCvxParameters()
-system_params = PoweredDescentParameters()
+params = PoweredDescentParameters()
 
-system = ClassicPoweredDescentModel_FixedFinalAttitude(params=system_params)
-algo = ClassicSCvx_FixedFinalAttitude(algo_params, system)
+system = ClassicPoweredDescentModel_FixedFinalAttitude(params=params)
+algo = ClassicSCvx_FixedFinalAttitude(params, system)
 
 x, u = system.initialize_trajectory()
 

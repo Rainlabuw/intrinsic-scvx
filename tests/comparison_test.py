@@ -2,16 +2,14 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.Model import ClassicPoweredDescentModel, IntrinsicPoweredDescentModel
+from src.models import ClassicPoweredDescentModel, IntrinsicPoweredDescentModel
 import matplotlib.pyplot as plt
-from src.parameters import SCvxParameters, PoweredDescentParameters
-from src.SCvx import ClassicSCvx, IntrinsicSCvx
+from src.parameters import PoweredDescentParameters
+from src.algorithms import ClassicSCvx, IntrinsicSCvx
 
-system_params = PoweredDescentParameters()
-
-algo_params = SCvxParameters()
-system1 = ClassicPoweredDescentModel(params=system_params)
-algo1 = ClassicSCvx(algo_params, system1)
+params = PoweredDescentParameters()
+system1 = ClassicPoweredDescentModel(params=params)
+algo1 = ClassicSCvx(params, system1)
 
 x, u = system1.initialize_trajectory()
 x_init = system1.x_init.copy()
@@ -24,8 +22,8 @@ system1.animate_trajectory(
     x1_opt, u1_opt, filename="media/classic_scvx_rocket_descent.gif", show=False
 )
 
-system2 = IntrinsicPoweredDescentModel(system_params, x_init=x_init)
-algo2 = IntrinsicSCvx(algo_params, system2)
+system2 = IntrinsicPoweredDescentModel(params, x_init=x_init)
+algo2 = IntrinsicSCvx(params, system2)
 
 x2_opt, u2_opt, traj_cost_hist_2, time2, penalty_hist_2 = algo2.run(
     x.copy(), u.copy(), verbose=True

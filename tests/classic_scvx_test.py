@@ -2,16 +2,15 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.Model import ClassicPoweredDescentModel
+from src.models import ClassicPoweredDescentModel
 import matplotlib.pyplot as plt
-from src.parameters import SCvxParameters, PoweredDescentParameters
-from src.SCvx import ClassicSCvx
+from src.parameters import PoweredDescentParameters
+from src.algorithms import ClassicSCvx
 
-algo_params = SCvxParameters()
-system_params = PoweredDescentParameters()
+params = PoweredDescentParameters()
 
-system = ClassicPoweredDescentModel(params=system_params)
-algo = ClassicSCvx(algo_params, system)
+system = ClassicPoweredDescentModel(params=params)
+algo = ClassicSCvx(params, system)
 
 x, u = system.initialize_trajectory()
 

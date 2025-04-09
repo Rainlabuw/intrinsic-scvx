@@ -2,17 +2,16 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.Model import IntrinsicPoweredDescentModel
+from src.models import IntrinsicPoweredDescentModel
 import matplotlib.pyplot as plt
-from src.parameters import SCvxParameters, PoweredDescentParameters
-from src.SCvx import IntrinsicSCvx
+from src.parameters import PoweredDescentParameters
+from src.algorithms import IntrinsicSCvx
 
-algo_params = SCvxParameters()
-system_params = PoweredDescentParameters()
+params = PoweredDescentParameters()
 
-system = IntrinsicPoweredDescentModel(params=system_params)
+system = IntrinsicPoweredDescentModel(params=params)
 
-algo = IntrinsicSCvx(algo_params, system)
+algo = IntrinsicSCvx(params, system)
 x, u = system.initialize_trajectory()
 x_opt, u_opt, traj_cost_hist, time, penalty_hist = algo.run(x, u, verbose=True)
 
