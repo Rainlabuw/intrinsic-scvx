@@ -4,7 +4,7 @@ import numpy as np
 @dataclass
 class SatelliteParameters:
     tf: float = 60.0
-    dt: float = 1
+    dt: float = 1.0
     TOL: float = 1e-8 
     K = int(tf / dt)  # Number of time steps
     n_x = 4
@@ -75,7 +75,7 @@ class PoweredDescentParameters:
     gamma_max: float = np.deg2rad(30)  # Max thrust pointing angle
 
     # SCvx algorithm settings
-    iterations: int = 100  # Max iterations
+    iterations: int = 1000  # Max iterations
     solver: str = ['ECOS', 'MOSEK', 'CLARABEL'][2]  # Convex solver choice
     verbose_solver: bool = False  # Solver verbosity flag
     r0: float = 1.0  # Initial trust region radius
@@ -86,10 +86,10 @@ class PoweredDescentParameters:
     rho0: float = 0.0  # Lower trust region adjustment threshold
     rho1: float = 0.25  # Middle trust region adjustment threshold
     rho2: float = 0.7  # Upper trust region adjustment threshold
-    state_coeff: float = 0.1  # State cost weight
+    state_coeff: float = 0.0  # State cost weight
     final_state_coeff: float = 10.0  # Final state cost weight
-    control_coeff: float = 1  # Control cost weight
-    penalty_coeff: float = 1e5  # Penalty weight for constraints
+    control_coeff: float = 0.0  # Control cost weight
+    penalty_coeff: float = 1e3  # Penalty weight for constraints
 
     def __post_init__(self):
         """Post-initialization to scale parameters and compute derived values.

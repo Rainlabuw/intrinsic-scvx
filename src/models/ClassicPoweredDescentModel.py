@@ -113,6 +113,37 @@ class ClassicPoweredDescentModel(PoweredDescentModel):
         ]
         return constraints
     
+    def get_proximal_subproblem_constraints(
+        self, x: np.ndarray, u: np.ndarray, eta: cvx.Variable, xi: cvx.Variable, 
+        v: cvx.Variable, s: cvx.Variable
+    ) -> List:
+        constraints = [eta[:, 0] == np.zeros(self.n_x)]
+        for k in range(self.K):
+            xk = x[:, k]
+            uk = u[:, k]
+            etak = eta[:, k]
+            xik = xi[:, k]
+            xkp1 = x[:, k + 1]
+            etakp1 = eta[:, k + 1]
+            vk = v[:, k]
+            sk = s[:, k]
+            Ak = self.A_matrix(xk, uk)
+            Bk = self.B_matrix(xk, uk)
+            Sk = self.S_matrix(xk, uk)
+            zk = self.dynamics(xk, uk)
+            sigma_k = self.constraints(xk, uk)
+            constraints += [
+                etakp1 + xkp1 == zk + Ak @ etak + Bk @ xik + vk,
+                sigma_k + Sk @ etak - sk <= 0,
+                sk >= 0,
+            ]
+        constraints += [
+            x[:3, -1] + eta[:3, -1] == self.r_I_final,
+            x[3:6, -1] + eta[3:6, -1] == self.v_I_final,
+            x[10:, -1] + eta[10:, -1] == self.w_B_final,
+        ]
+        return constraints
+    
 class ClassicPoweredDescentModel_FixedFinalAttitude(ClassicPoweredDescentModel):
     def __init__(self, params: PoweredDescentParameters, x_init: Optional[np.ndarray] = None):
         """Initialize classic model with fixed final attitude.

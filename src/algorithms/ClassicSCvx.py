@@ -49,7 +49,7 @@ class ClassicSCvx(SCvx):
             float: Final stage cost value.
         """
         r, v, w = x[:3], x[3:6], x[10:]
-        Q = np.eye(3) * self.state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return (r - self.system.r_I_final).T @ Q @ (r - self.system.r_I_final) + \
                (v - self.system.v_I_final).T @ Q @ (v - self.system.v_I_final) + \
                (w - self.system.w_B_final).T @ Q @ (w - self.system.w_B_final)
@@ -98,7 +98,7 @@ class ClassicSCvx(SCvx):
             cvx.Expression: Convex final stage cost expression.
         """
         r, v, w = x[:3], x[3:6], x[10:]
-        Q = np.eye(3) * self.state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return cvx.quad_form(r - self.system.r_I_final, Q) + \
                cvx.quad_form(v - self.system.v_I_final, Q) + \
                cvx.quad_form(w - self.system.w_B_final, Q)
@@ -137,6 +137,40 @@ class ClassicSCvx(SCvx):
         for k in range(self.K):
             cost += self.penalty_coeff * cvx.norm(v[:, k], 1)
             cost += self.penalty_coeff * cvx.max(s[:, k])
+        return cost
+    
+    def cvx_proximal_trajectory_cost(
+        self, x: np.ndarray, u: np.ndarray, eta: cvx.Variable, xi: cvx.Variable, 
+        v: cvx.Variable, s: cvx.Variable, tk: float
+    ) -> cvx.Expression:
+        cost = self.cvx_trajectory_cost(x + eta, u + xi)
+        for k in range(self.K):
+            etak = eta[:,k]
+            xik = xi[:,k]
+            vk = v[:,k]
+            sk = s[:,k]
+            cost += 1/tk*cvx.quad_form(etak, np.eye(self.state_dim)) 
+            cost += 1/tk*cvx.quad_form(xik, np.eye(self.input_dim))
+            cost += self.penalty_coeff * cvx.norm(vk, 1)
+            cost += self.penalty_coeff * cvx.norm(sk, 1)
+            #cost += tk * cvx.max(sk)
+        return cost
+    
+    def proximal_trajectory_cost(
+        self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, 
+        v: np.ndarray, s: np.ndarray, tk: float
+    ) -> float:
+        cost = self.trajectory_cost(x + eta, u + xi)
+        for k in range(self.K):
+            etak = eta[:,k]
+            xik = xi[:,k]
+            vk = v[:,k]
+            sk = s[:,k]
+            cost += 1/tk*np.linalg.norm(etak)**2
+            cost += 1/tk*np.linalg.norm(xik)**2
+            cost += self.penalty_coeff * np.linalg.norm(vk, 1)
+            cost += self.penalty_coeff * np.linalg.norm(sk, 1)
+            #cost += self.penalty_coeff * np.max(sk)
         return cost
 
     def linearized_trajectory_cost(self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, v: np.ndarray, s: np.ndarray) -> float:
@@ -209,8 +243,8 @@ class ClassicSCvx_FixedFinalAttitude(ClassicSCvx):
             float: Final stage cost value.
         """
         r, v, q, w = self.system.extract_state(x)
-        Q_q = np.eye(4) * self.state_coeff
-        Q = np.eye(3) * self.state_coeff
+        Q_q = np.eye(4) * self.final_state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return (r - self.system.r_I_final).T @ Q @ (r - self.system.r_I_final) + \
                (v - self.system.v_I_final).T @ Q @ (v - self.system.v_I_final) + \
                (q - self.system.q_BI_final).T @ Q_q @ (q - self.system.q_BI_final) + \
@@ -246,8 +280,8 @@ class ClassicSCvx_FixedFinalAttitude(ClassicSCvx):
             cvx.Expression: Convex final stage cost expression.
         """
         r, v, q, w = self.system.extract_state(x)
-        Q_q = np.eye(4) * self.state_coeff
-        Q = np.eye(3) * self.state_coeff
+        Q_q = np.eye(4) * self.final_state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return cvx.quad_form(r - self.system.r_I_final, Q) + \
                cvx.quad_form(v - self.system.v_I_final, Q) + \
                cvx.quad_form(q - self.system.q_BI_final, Q_q) + \

@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple, List, Optional
 from ..parameters import PoweredDescentParameters
+import cvxpy as cvx
 
 class Model:
     def __init__(self, params: PoweredDescentParameters, x_init: Optional[np.ndarray]):
@@ -172,19 +173,25 @@ class Model:
             x[:, k + 1] = self.dynamics(x[:, k], uk)
         return x
 
-    def get_subproblem_constraints(self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, v: np.ndarray, s: np.ndarray, r: int) -> List:
+    def get_subproblem_constraints(self, x: np.ndarray, u: np.ndarray, eta: cvx.Variable, xi: cvx.Variable, v: cvx.Variable, s:cvx.Variable, r: float) -> List:
         """Define constraints for optimization subproblem.
 
         Inputs:
             x (np.ndarray): State trajectory, shape (state_dim, K+1).
             u (np.ndarray): Control trajectory, shape (input_dim, K).
-            eta (np.ndarray): State perturbation, shape (state_dim, K+1).
-            xi (np.ndarray): Control perturbation, shape (input_dim, K).
-            v (np.ndarray): Dynamics slack, shape (state_dim, K).
-            s (np.ndarray): Constraint slack, shape (constraint_dim, K).
-            r (int): Trust region radius.
+            eta (cvx.Variable): State perturbation, shape (state_dim, K+1).
+            xi (cvx.Variable): Control perturbation, shape (input_dim, K).
+            v (cvx.Variable): Dynamics slack, shape (state_dim, K).
+            s (cvx.Variable): Constraint slack, shape (constraint_dim, K).
+            r (float): Trust region radius.
 
         Outputs:
             List: List of constraint expressions for optimization.
         """
         raise NotImplementedError("Subclasses must implement get_subproblem_constraints")
+    
+    def get_proximal_subproblem_constraints(
+        self, x: np.ndarray, u: np.ndarray, eta: cvx.Variable, xi: cvx.Variable, 
+        v: cvx.Variable, s: cvx.Variable
+    ) -> List:
+        pass

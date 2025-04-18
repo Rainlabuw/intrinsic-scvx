@@ -85,6 +85,33 @@ class SCvx:
             raise ValueError(f"Problem status not optimal: {problem.status}")
 
         return eta.value, xi.value, v.value, s.value  # Return optimized variables
+    
+    def proximal_subproblem(
+        self, x: np.ndarray, u: np.ndarray, tk: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+        eta = cvx.Variable((self.state_dim, self.K + 1))  # State perturbation
+        xi = cvx.Variable((self.input_dim, self.K))  # Control perturbation
+        v = cvx.Variable((self.state_dim, self.K))  # Dynamics slack variable
+        s = cvx.Variable((self.constraints_dim, self.K))  # Constraint slack variable
+        constraints = self.system.get_proximal_subproblem_constraints(
+            x, u, eta, xi, v, s
+        )  # Get system-specific constraints
+
+        J = self.cvx_proximal_trajectory_cost(x, u, eta, xi, v, s, tk)  # Objective function
+        problem = cvx.Problem(cvx.Minimize(J), constraints)  # Define convex problem
+        opt_value = problem.solve(solver=self.solver, verbose=self.verbose_solver)  # Solve
+        if problem.status == 'optimal_inaccurate':
+            print(f"Status: {problem.status}")
+            print(f"Objective value: {problem.value}")
+            print(f"Solver stats: {problem.solver_stats}")
+        if problem.status not in ['optimal', 'optimal_inaccurate']:
+            print(f"Status: {problem.status}")
+            print(f"Objective value: {problem.value}")
+            print(f"Solver stats: {problem.solver_stats}")
+            raise ValueError(f"Problem status not optimal: {problem.status}")
+
+        return eta.value, xi.value, v.value, s.value
 
     def run(self, x: np.ndarray, u: np.ndarray, verbose: bool = False) -> Tuple[np.ndarray, np.ndarray, List[float], float, List[float]]:
         """Execute the SCvx algorithm to optimize the trajectory.
@@ -173,6 +200,56 @@ class SCvx:
         end_time = time.time()
         return x, u, C_hist, end_time - start_time, penalty_hist  # Return optimized trajectory and metrics
 
+    def run_proximal_method(
+        self, x: np.ndarray, u: np.ndarray, verbose: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray, List[float], float, List[float]]:
+        k = 0  # Iteration counter
+        tk = 1/self.penalty_coeff
+        C_hist = []  # History of trajectory costs
+        J_hist = []  # History of proximal terms
+        start_time = time.time()
+        while True:
+            if k >= self.iterations:
+                print(f"Reached max iterations: {self.iterations}")
+                break
+
+            eta, xi, v, s = self.proximal_subproblem(x, u, tk) # Solve subproblem
+            prox_J = self.proximal_trajectory_cost(x, u, eta, xi, v, s, tk)
+            C = self.trajectory_cost(x, u)
+
+            J = self.penalized_trajectory_cost(x, u)  
+            x_retract = self.system.retract_trajectory(x, eta) 
+            u_retract = u + xi
+            J_trans = self.penalized_trajectory_cost(x_retract, u_retract) 
+            L = self.linearized_trajectory_cost(x, u, eta, xi, v, s)
+            Delta_J = J - J_trans
+            Delta_L = J - L
+            rho = Delta_J/Delta_L
+
+            if rho < 0:
+                tk /= 2
+            else:
+                if rho > self.rho1:
+                    tk *= 2
+                x = x_retract
+                u = u_retract
+                k += 1
+                if verbose:
+                    print(f"Step: {k}")
+                    print(f"prox_J: {prox_J}")
+                    print(f"penalty: {(J - C)/self.penalty_coeff}")
+                    print(f"C: {C}")
+                    print(f"max eta: {np.max(np.linalg.norm(eta, axis=0))}")
+                    print(f"max xi: {np.max(np.linalg.norm(xi, axis=0))}")
+                    print(f"max v: {np.max(np.linalg.norm(v, axis=0))}")
+                    print(f"max s: {np.max(np.linalg.norm(s, axis=0))}")
+                    print(f"tk: {tk}")
+                    print(f"Delta J: {Delta_J}")
+                    print(f"rho: {rho}")
+                    print()
+        end_time = time.time()
+        return x, u
+
     def stage_cost(self, x: np.ndarray, u: np.ndarray) -> float:
         """Compute the cost for a single time step.
 
@@ -258,6 +335,18 @@ class SCvx:
             cvx.Expression: Convex linearized trajectory cost expression.
         """
         raise NotImplementedError("Subclasses must implement cvx_linearized_trajectory_cost")
+    
+    def cvx_proximal_trajectory_cost(
+        self, x: np.ndarray, u: np.ndarray, eta: cvx.Variable, xi: cvx.Variable, 
+        v: cvx.Variable, s: cvx.Variable, tk: float
+    ) -> cvx.Expression:
+        pass
+
+    def proximal_trajectory_cost(
+        self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, 
+        v: np.ndarray, s: np,ndarray, tk: float
+    ) -> float:
+        pass
 
     def linearized_trajectory_cost(self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, v: np.ndarray, s: np.ndarray) -> float:
         """Compute the linearized trajectory cost including penalties.
