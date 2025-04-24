@@ -1,3 +1,6 @@
+import numpy as np
+np.random.seed(100)
+
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -42,6 +45,8 @@ system2.print_trajectory(x2_opt, u2_opt)
 print("System 1")
 print("Eucl traj cost: ", algo1.trajectory_cost(x1_opt, u1_opt))
 print("Geo traj cost: ", algo2.trajectory_cost(x1_opt, u1_opt))
+print("Penalized Eucl Traj Cost: ", algo1.penalized_trajectory_cost(x1_opt, u1_opt))
+print("Penalized Geo Traj Cost: ", algo2.penalized_trajectory_cost(x1_opt, u1_opt))
 print("traj dynamic total: ", system1.get_trajectory_dynamic_error(x1_opt, u1_opt))
 print("traj constraints total: ", system1.get_trajectory_constraints_error(x1_opt, u1_opt))
 print("time: ", time1)
@@ -50,6 +55,8 @@ print()
 print("System 2")
 print("Eucl traj cost: ", algo1.trajectory_cost(x2_opt, u2_opt))
 print("Geo traj cost: ", algo2.trajectory_cost(x2_opt, u2_opt))
+print("Penalized Eucl Traj Cost: ", algo1.penalized_trajectory_cost(x2_opt, u2_opt))
+print("Penalized Geo Traj Cost: ", algo2.penalized_trajectory_cost(x2_opt, u2_opt))
 print("traj dynamic total: ", system2.get_trajectory_dynamic_error(x2_opt, u2_opt))
 print("traj constraints total: ", system2.get_trajectory_constraints_error(x2_opt, u2_opt))
 print("time: ", time2)
@@ -57,23 +64,27 @@ print("final state: ", x2_opt[:,-1])
 
 
 plt.figure()
+
+plt.subplot(2,1,1)
 plt.plot(traj_cost_hist_1, label='classic')
 plt.plot(traj_cost_hist_2, label='intrinsic')
 plt.grid()
 plt.xlabel("iteration")
 plt.ylabel("traj cost")
-plt.title("Traj cost comparison")
+plt.title("Traj cost Comparison")
 plt.legend()
-plt.savefig('media/traj_cost_comparison.pdf')
 
-plt.figure()
+plt.subplot(2,1,2)
 plt.semilogy(penalty_hist_1, label='classic')
 plt.semilogy(penalty_hist_2, label='intrinsic')
 plt.grid()
 plt.xlabel("iteration")
-plt.ylabel("penalized traj cost")
-plt.title("Penalized traj cost comparison")
+plt.ylabel("penalty")
+plt.title("penalty comparison")
 plt.legend()
-plt.savefig('media/penalized_traj_cost_comparison.pdf')
 
+plt.tight_layout()
+plt.savefig('media/comparison.pdf')
+
+plt.show()
 plt.close()

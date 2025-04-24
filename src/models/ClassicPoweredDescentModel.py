@@ -199,6 +199,6 @@ class ClassicPoweredDescentModel_FixedFinalAttitude(ClassicPoweredDescentModel):
             x[:3, -1] + eta[:3, -1] == self.r_I_final,
             x[3:6, -1] + eta[3:6, -1] == self.v_I_final,
             x[10:, -1] + eta[10:, -1] == self.w_B_final,
-            x[6:10, -1] + eta[6:10, -1] == self.q_BI_final,
+            #x[6:10, -1] + eta[6:10, -1] == self.q_BI_final,
         ]
         return constraints

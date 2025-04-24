@@ -136,7 +136,8 @@ class ClassicSCvx(SCvx):
         cost = self.cvx_trajectory_cost(x + eta, u + xi)
         for k in range(self.K):
             cost += self.penalty_coeff * cvx.norm(v[:, k], 1)
-            cost += self.penalty_coeff * cvx.max(s[:, k])
+            #cost += self.penalty_coeff * cvx.max(s[:, k])
+            cost += self.penalty_coeff * cvx.norm(s[:, k], 1)
         return cost
     
     def cvx_proximal_trajectory_cost(
@@ -190,7 +191,8 @@ class ClassicSCvx(SCvx):
         cost = self.trajectory_cost(x + eta, u + xi)
         for k in range(self.K):
             cost += self.penalty_coeff * np.linalg.norm(v[:, k], 1)
-            cost += self.penalty_coeff * np.max(s[:, k])
+            #cost += self.penalty_coeff * np.max(s[:, k])
+            cost += self.penalty_coeff * np.linalg.norm(s[:,k], 1)
         return cost
 
     def penalized_trajectory_cost(self, x: np.ndarray, u: np.ndarray) -> float:
@@ -210,7 +212,8 @@ class ClassicSCvx(SCvx):
             zk = self.system.dynamics(xk, uk)
             sigmak = self.system.constraints(xk, uk)
             cost += self.penalty_coeff * np.linalg.norm(x_kp1 - zk, 1)
-            cost += self.penalty_coeff * np.maximum(np.max(sigmak), 0)
+            #cost += self.penalty_coeff * np.maximum(np.max(sigmak), 0)
+            cost += self.penalty_coeff * np.linalg.norm(np.maximum(sigmak, 0), 1)
         return cost
     
 

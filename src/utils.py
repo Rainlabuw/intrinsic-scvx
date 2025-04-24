@@ -2,7 +2,7 @@ import sympy as sp
 import numpy as np
 from typing import Tuple
 
-TOL: float = 1e-8  # Numerical tolerance
+TOL: float = 1e-10  # Numerical tolerance
 
 def euler_to_quat(a: np.ndarray) -> np.ndarray:
     """Convert Euler angles to quaternion.
@@ -429,7 +429,7 @@ def dlog(q: np.ndarray, dq: np.ndarray) -> np.ndarray:
     """Compute differential of quaternion logarithm.
 
     Inputs:
-        q (np.ndarray): Quaternion [w, x, y, z], shape (4,).
+        q (np.ndarray): Unit quaternion [w, x, y, z], shape (4,).
         dq (np.ndarray): Quaternion perturbation, shape (4,).
 
     Outputs:
@@ -439,31 +439,35 @@ def dlog(q: np.ndarray, dq: np.ndarray) -> np.ndarray:
         raise ValueError(f"q is not unital, got {q.T@q}")
     if abs(dq.T @ q) > TOL:
         raise ValueError(f"q and dq must be orthogonal, got {q.T@dq}")
-    q0 = q[0]
-    qv = q[1:]
-    norm_qv = np.linalg.norm(qv)
-    if abs(1 - q0) < TOL or norm_qv < TOL:
+    
+    q0 = q[0]  
+    qv = q[1:] 
+    norm_qv = np.linalg.norm(qv) 
+    if abs(1 - q0) < TOL:
         return dq[1:]
+    theta = np.arccos(q0)
     M = np.zeros((3, 4))
-    M[:, 0] = -1 / norm_qv / np.sqrt(1 - q0 ** 2) * qv
+    M[:,0] = -qv/norm_qv**2
     I = np.eye(3)
-    qv_outer = qv * qv.T
-    M[:, 1:] = np.arccos(q0) / norm_qv * (I - qv_outer / norm_qv ** 2)
+    qv_outer = np.outer(qv, qv)
+    M[:,1:] = theta/norm_qv * (I - qv_outer / norm_qv**2)
     return M @ dq
 
 def dlog_matrix(q: np.ndarray) -> np.ndarray:
-    q0 = q[0]
-    qv = q[1:]
-    norm_qv = np.linalg.norm(qv)
-    if abs(1 - q0) < TOL or norm_qv < TOL:
-        M = np.zeros((3, 4))
+    if abs(q.T @ q - 1) > TOL:
+        raise ValueError(f"q is not unital, got {q.T@q}")
+    q0 = q[0]  
+    qv = q[1:] 
+    norm_qv = np.linalg.norm(qv) 
+    M = np.zeros((3, 4))
+    if norm_qv < TOL:
         M[:,1:] = np.eye(3)
         return M
-    M = np.zeros((3, 4))
-    M[:, 0] = -1 / norm_qv / np.sqrt(1 - q0 ** 2) * qv
+    theta = np.arccos(q0)
+    M[:,0] = -qv/norm_qv**2
     I = np.eye(3)
-    qv_outer = qv * qv.T
-    M[:, 1:] = np.arccos(q0) / norm_qv * (I - qv_outer / norm_qv ** 2)
+    qv_outer = np.outer(qv, qv)
+    M[:,1:] = theta/norm_qv * (I - qv_outer / norm_qv**2)
     return M
 
 def sp_grad_sinc(w: sp.Matrix) -> sp.Matrix:
@@ -552,7 +556,7 @@ def dexp(w: np.ndarray, eta: np.ndarray) -> np.ndarray:
     M[1:, :] = sinc(w) * I + grad_sinc(w) * w.T
     return M @ eta
 
-def sp_d_quat_retract(q: sp.Matrix, p: sp.Matrix, dp: sp.Matrix) -> sp.Matrix:
+def sp_d_inv_quat_retract(q: sp.Matrix, p: sp.Matrix, dp: sp.Matrix) -> sp.Matrix:
     """Compute symbolic differential of quaternion retraction.
 
     Inputs:
@@ -571,7 +575,7 @@ def sp_d_quat_retract(q: sp.Matrix, p: sp.Matrix, dp: sp.Matrix) -> sp.Matrix:
     v[1:, 0] = sp_dlog(inv_q_p, inv_q_mult @ dp)
     return q_mult @ v
 
-def d_quat_retract(q: np.ndarray, p: np.ndarray, dp: np.ndarray) -> np.ndarray:
+def d_inv_quat_retract(q: np.ndarray, p: np.ndarray, dp: np.ndarray) -> np.ndarray:
     """Compute differential of quaternion retraction.
 
     Inputs:
@@ -610,7 +614,7 @@ def sp_d_inv_retract(x: sp.Matrix, z: sp.Matrix, dz: sp.Matrix) -> sp.Matrix:
     q_dz = dz[6:10, 0]
     q_x = x[6:10, 0]
     q_z = z[6:10, 0]
-    q_dx = sp_d_quat_retract(q_x, q_z, q_dz)
+    q_dx = sp_d_inv_quat_retract(q_x, q_z, q_dz)
     dx = sp.zeros(13, 1)
     dx[6:10, 0] = q_dx
     dx[:6, 0] = dz[:6, 0]
@@ -631,12 +635,38 @@ def d_inv_retract(x: np.ndarray, z: np.ndarray, dz: np.ndarray) -> np.ndarray:
     q_dz = dz[6:10]
     q_x = x[6:10]
     q_z = z[6:10]
-    q_dx = d_quat_retract(q_x, q_z, q_dz)
+    q_dx = d_inv_quat_retract(q_x, q_z, q_dz)
     dx = np.zeros(13)
     dx[6:10] = q_dx
     dx[:6] = dz[:6]
     dx[10:] = dz[10:]
     return dx
+
+def d_inv_retract_matrix(x: np.ndarray, z: np.ndarray, A) -> np.ndarray:
+    """Compute differential of inverse state retraction.
+
+    Inputs:
+        x (np.ndarray): Base state vector, shape (13,).
+        z (np.ndarray): Target state vector, shape (13,).
+        dz (np.ndarray): Perturbation vector, shape (13,).
+
+    Outputs:
+        np.ndarray: Differential tangent vector, shape (13,).
+    """
+    D = np.zeros((13,A.shape[1]))
+    for i in range(A.shape[1]):
+        dz = A[:,i]
+        q_dz = dz[6:10]
+        q_x = x[6:10]
+        q_z = z[6:10]
+        q_dx = d_inv_quat_retract(q_x, q_z, q_dz)
+        dx = np.zeros(13)
+        dx[6:10] = q_dx
+        dx[:6] = dz[:6]
+        dx[10:] = dz[10:]
+        D[:,i] = dx
+    return D
+
 
 def sp_quat_mult_matrix(q: sp.Matrix) -> sp.Matrix:
     """Compute symbolic quaternion multiplication matrix.
@@ -752,3 +782,30 @@ def sq_dist(q, p):
     error = inv_q_mult @ p
     log_error = log(error)
     return np.linalg.norm(log_error)
+
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    xi = np.random.randn(3)
+    xi = xi/np.linalg.norm(xi)*np.random.rand()*np.pi/2
+    q = exp(xi)
+    q_mult = quat_mult_matrix(q)
+    v = np.random.randn(3)
+    v = v/np.linalg.norm(v)
+    gamma = lambda t: log(q_mult @ exp(t*v))
+    dq = np.zeros(4)
+    dq[1:] = v
+    dq = q_mult@dq
+    tspan = np.logspace(-10,0,100)
+    yspan = []
+    for t in tspan:
+        aux = (gamma(t) - gamma(0))/t
+        dJ = dlog(q, dq)
+        y = np.linalg.norm(dJ - aux[1:])
+        yspan.append(y)
+    yspan = np.array(yspan)
+    plt.figure()
+    plt.loglog(tspan, yspan)
+    plt.grid()
+    plt.show()

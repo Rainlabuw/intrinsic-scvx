@@ -426,7 +426,7 @@ class PoweredDescentModel(Model):
 
         anim = FuncAnimation(fig, update, frames=self.K, interval=interval, blit=False)
         anim.save(filename, writer='pillow', fps=fps, dpi=100)
-        print(f"Animation saved as {filename}")
+        #print(f"Animation saved as {filename}")
         if show:
             plt.show()
         plt.close()

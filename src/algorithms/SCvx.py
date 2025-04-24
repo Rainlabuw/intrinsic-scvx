@@ -193,7 +193,7 @@ class SCvx:
                 r = max(r, self.rl)  # Enforce minimum radius
                 k += 1
                 C_hist.append(C)
-                penalty_hist.append(J)
+                penalty_hist.append(penalty)
             if r < 1e-20:  # Trust region too small: terminate
                 print(f"Trust region too small")
                 break
@@ -207,7 +207,6 @@ class SCvx:
         tk = 1/self.penalty_coeff
         C_hist = []  # History of trajectory costs
         J_hist = []  # History of proximal terms
-        start_time = time.time()
         while True:
             if k >= self.iterations:
                 print(f"Reached max iterations: {self.iterations}")
@@ -247,7 +246,6 @@ class SCvx:
                     print(f"Delta J: {Delta_J}")
                     print(f"rho: {rho}")
                     print()
-        end_time = time.time()
         return x, u
 
     def stage_cost(self, x: np.ndarray, u: np.ndarray) -> float:
