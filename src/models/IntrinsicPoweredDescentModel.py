@@ -3,7 +3,7 @@ from typing import List, Optional
 from ..parameters import PoweredDescentParameters
 from ..models import PoweredDescentModel
 import cvxpy as cvx
-from src.utils import frame, retract, inv_retract, d_inv_retract
+from src.utils import frame, retract, inv_retract, d_inv_retract, d_inv_retract_matrix
 
 
 class IntrinsicPoweredDescentModel(PoweredDescentModel):
@@ -56,27 +56,19 @@ class IntrinsicPoweredDescentModel(PoweredDescentModel):
         for j in range(self.state_dim):
             gj = z_frame[:, j]
             D[:, j] = d_inv_retract(x, z, gj)  # Assumed helper function
-        return x_frame.T @ D
+        return np.linalg.pinv(x_frame) @ D
 
-    def A_matrix(self, x: np.ndarray, u: np.ndarray, x_next: np.ndarray) -> np.ndarray:
-        """Compute state Jacobian in intrinsic coordinates.
-
-        Inputs:
-            x (np.ndarray): Current state, shape (13,).
-            u (np.ndarray): Control input, shape (6,).
-            x_next (np.ndarray): Next state, shape (13,).
-
-        Outputs:
-            np.ndarray: State Jacobian, shape (12, 12).
-        """
+    def A_matrix(self, x, u, x_next):
         x_frame = frame(x)
         z = self.dynamics(x, u)
-        z_frame = frame(z)
+        x_next_frame = frame(x_next)
+        pinv_x_next_frame = np.linalg.pinv(x_next_frame)
         A = self.lambdified_A_matrix(x, u)
-        A_coords = z_frame.T @ A @ x_frame
-        D = self.D_matrix(x_next, z)
-        return D @ A_coords
-
+        A_tilde = A@x_frame
+        A_tilde = d_inv_retract_matrix(x_next, z, A_tilde)
+        A_tilde = pinv_x_next_frame@A_tilde
+        return A_tilde
+    
     def B_matrix(self, x: np.ndarray, u: np.ndarray, x_next: np.ndarray) -> np.ndarray:
         """Compute control Jacobian in intrinsic coordinates.
 
@@ -88,12 +80,12 @@ class IntrinsicPoweredDescentModel(PoweredDescentModel):
         Outputs:
             np.ndarray: Control Jacobian, shape (12, 6).
         """
-        B = self.lambdified_B_matrix(x, u)
-        x_frame = frame(x)
-        B_coords = x_frame.T @ B
         z = self.dynamics(x, u)
-        D = self.D_matrix(x_next, z)
-        return D @ B_coords
+        x_next_frame = frame(x_next)
+        pinv_x_next_frame = np.linalg.pinv(x_next_frame)
+        B = self.lambdified_B_matrix(x, u)
+        B_tilde = pinv_x_next_frame@d_inv_retract_matrix(x_next, z, B)
+        return B_tilde
 
     def retract_trajectory(self, x: np.ndarray, eta: np.ndarray) -> np.ndarray:
         """Adjust trajectory using geometric retraction.

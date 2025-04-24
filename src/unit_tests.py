@@ -235,18 +235,86 @@ class TestQuaternionFunctions(unittest.TestCase):
         np.testing.assert_array_almost_equal(dx_num[6:10], np.zeros(4), decimal=6,
             err_msg="sp_inv_retract(x, x)[6:10] != [0, 0, 0, 0]")
 
+    def test_inv_retract_retract_identity(self):
+        """Test that inv_retract(x, y) = v implies y = retract(x, v)."""
+        x = rand_state()  # Random state vector
+        y = rand_state()  # Random target state vector
+        v = inv_retract(x, y)
+        y_reconstructed = retract(x, v)
+        np.testing.assert_array_almost_equal(y, y_reconstructed, decimal=8,
+            err_msg="retract(x, inv_retract(x, y)) != y")
 
-def run_tests_multiple_times(n):
-    for i in range(n):
-        print(f"Run {i + 1}")
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestQuaternionFunctions)
-        result = unittest.TextTestRunner(verbosity=2).run(suite)
-        if not result.wasSuccessful():
-            print(f"Failure detected on run {i + 1}")
-            break
-    else:
-        print("All 1000 runs passed!")
+    def test_d_inv_quat_retract_differential(self):
+        """Test that d_inv_quat_retract is the differential of inv_quat_retract."""
+        q = self.q  # Random unit quaternion from setUp
+        p = rand_quat()  # Random target unit quaternion
+        dp = rand_tangent_quat(p)  # Random tangent quaternion orthogonal to p
+        eps = 1e-8
+        # Numerical differential: (inv_quat_retract(q, p + eps*dp) - inv_quat_retract(q, p)) / eps
+        p_perturbed = quat_retract(p, eps * dp)
+        num_diff = (inv_quat_retract(q, p_perturbed) - inv_quat_retract(q, p)) / eps
+        # Analytical differential: d_inv_quat_retract(q, p, dp)
+        anal_diff = d_inv_quat_retract(q, p, dp)
+        np.testing.assert_array_almost_equal(num_diff, anal_diff, decimal=5,
+            err_msg="d_inv_quat_retract does not match numerical differential of inv_quat_retract")
+
+    def test_d_inv_retract_differential(self):
+        """Test that d_inv_retract is the differential of inv_retract."""
+        x = self.x  # Random state vector from setUp
+        z = rand_state()  # Random target state vector
+        dz = rand_tangent_state(z)  # Random tangent state vector, with dz[6:10] orthogonal to z[6:10]
+        eps = 1e-6
+        # Numerical differential: (inv_retract(x, z + eps*dz) - inv_retract(x, z)) / eps
+        z_perturbed = retract(z, eps * dz)
+        num_diff = (inv_retract(x, z_perturbed) - inv_retract(x, z)) / eps
+        # Analytical differential: d_inv_retract(x, z, dz)
+        anal_diff = d_inv_retract(x, z, dz)
+        np.testing.assert_array_almost_equal(num_diff, anal_diff, decimal=5,
+            err_msg="d_inv_retract does not match numerical differential of inv_retract")
+
+    def test_dlog_numerical(self):
+        """Test that dlog matches the numerical differential of log."""
+        while True:
+            q = rand_quat()
+            if abs(q[0] - 1) > 0.1 and np.linalg.norm(q[1:]) > 1e-6:  # Avoid edge cases
+                break
+        dq = rand_tangent_quat(q)
+        eps = 1e-8  # Larger eps for numerical stability
+        q_perturbed = quat_retract(q, eps * dq)
+        num_diff = (log(q_perturbed)[1:] - log(q)[1:]) / eps
+        anal_diff = dlog(q, dq)
+
+        np.testing.assert_array_almost_equal(num_diff, anal_diff, decimal=5,
+            err_msg="dlog does not match numerical differential of log")
+        
+    def test_log_correctness(self):
+        """Test that log produces correct quaternion logarithms."""
+        # Case 1: Identity quaternion q = [1, 0, 0, 0]
+        q1 = np.array([1.0, 0.0, 0.0, 0.0])
+        expected1 = np.array([0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_array_almost_equal(log(q1), expected1, decimal=8,
+            err_msg="log([1, 0, 0, 0]) != [0, 0, 0, 0]")
+
+        # Case 2: 180-degree rotation around x-axis q = [0, 1, 0, 0]
+        q2 = np.array([0.0, 1.0, 0.0, 0.0])
+        expected2 = np.array([0.0, np.pi/2, 0.0, 0.0])  # theta = pi/2
+        np.testing.assert_array_almost_equal(log(q2), expected2, decimal=8,
+            err_msg="log([0, 1, 0, 0]) != [0, pi/2, 0, 0]")
+
+        # Case 3: General quaternion q = [cos(theta/2), sin(theta/2)/sqrt(3), ...]
+        theta = np.pi / 4  # 45 degrees
+        q3 = np.array([np.cos(theta/2), np.sin(theta/2)/np.sqrt(3), np.sin(theta/2)/np.sqrt(3), np.sin(theta/2)/np.sqrt(3)])
+        q3 = q3 / np.linalg.norm(q3)  # Ensure unit
+        expected3 = np.array([0.0, theta/2/np.sqrt(3), theta/2/np.sqrt(3), theta/2/np.sqrt(3)])
+        np.testing.assert_array_almost_equal(log(q3), expected3, decimal=8,
+            err_msg="log(general quaternion) incorrect")
+
+        # Case 4: Near identity with small vector part
+        q4 = np.array([1.0 - 1e-6, 1e-6, 1e-6, 1e-6])
+        q4 = q4 / np.linalg.norm(q4)  # Ensure unit
+        result4 = log(q4)
+        norm_v = np.linalg.norm(result4[1:])
+        self.assertLess(norm_v, 1e-5, msg="log(near identity) produces large vector part")
 
 if __name__ == "__main__":
     unittest.main()
-    # run_tests_multiple_times(1000)

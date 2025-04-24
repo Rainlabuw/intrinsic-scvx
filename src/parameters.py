@@ -3,8 +3,8 @@ import numpy as np
 
 @dataclass
 class SatelliteParameters:
-    tf: float = 60.0
-    dt: float = 1
+    tf: float = 30.0
+    dt: float = 1.0
     TOL: float = 1e-8 
     K = int(tf / dt)  # Number of time steps
     n_x = 4
@@ -33,8 +33,8 @@ class SatelliteParameters:
 @dataclass
 class PoweredDescentParameters:
     # Physical parameters in SI units (meters, seconds, etc.)
-    tf: float = 60.0  # Final time for trajectory
-    dt: float = 1  # Time step size
+    tf: float = 30.0  # Final time for trajectory
+    dt: float = 2.0  # Time step size
     TOL: float = 1e-8  # Numerical tolerance
     K = int(tf / dt)  # Number of time steps
 
@@ -75,11 +75,11 @@ class PoweredDescentParameters:
     gamma_max: float = np.deg2rad(30)  # Max thrust pointing angle
 
     # SCvx algorithm settings
-    iterations: int = 100  # Max iterations
+    iterations: int = 1000  # Max iterations
     solver: str = ['ECOS', 'MOSEK', 'CLARABEL'][2]  # Convex solver choice
     verbose_solver: bool = False  # Solver verbosity flag
     r0: float = 1.0  # Initial trust region radius
-    rl: float = 1e-5  # Minimum trust region radius
+    rl: float = 0.0  # Minimum trust region radius
     alpha: float = 2.0  # Trust region shrinkage factor
     beta: float = 3.0  # Trust region expansion factor
     eps_tol: float = 1e-3  # Convergence tolerance
@@ -88,7 +88,7 @@ class PoweredDescentParameters:
     rho2: float = 0.7  # Upper trust region adjustment threshold
     state_coeff: float = 0.1  # State cost weight
     final_state_coeff: float = 10.0  # Final state cost weight
-    control_coeff: float = 1  # Control cost weight
+    control_coeff: float = 1.0  # Control cost weight
     penalty_coeff: float = 1e5  # Penalty weight for constraints
 
     def __post_init__(self):

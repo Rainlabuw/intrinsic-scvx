@@ -85,7 +85,7 @@ class SCvx:
             raise ValueError(f"Problem status not optimal: {problem.status}")
 
         return eta.value, xi.value, v.value, s.value  # Return optimized variables
-
+    
     def run(self, x: np.ndarray, u: np.ndarray, verbose: bool = False) -> Tuple[np.ndarray, np.ndarray, List[float], float, List[float]]:
         """Execute the SCvx algorithm to optimize the trajectory.
 
@@ -166,7 +166,7 @@ class SCvx:
                 r = max(r, self.rl)  # Enforce minimum radius
                 k += 1
                 C_hist.append(C)
-                penalty_hist.append(J)
+                penalty_hist.append(penalty)
             if r < 1e-20:  # Trust region too small: terminate
                 print(f"Trust region too small")
                 break

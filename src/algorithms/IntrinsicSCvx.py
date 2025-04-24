@@ -3,7 +3,7 @@ import numpy as np
 from ..algorithms import SCvx
 from ..models import IntrinsicPoweredDescentModel, IntrinsicPoweredDescentModel_FixedFinalAttitude
 from ..parameters import PoweredDescentParameters
-from ..utils import conj, quat_mult_matrix, log, quat_frame, frame
+from ..utils import conj, quat_mult_matrix, log, quat_frame, frame, dlog_matrix
 
 
 class IntrinsicSCvx(SCvx):
@@ -53,7 +53,7 @@ class IntrinsicSCvx(SCvx):
             float: Final stage cost value.
         """
         r, v, w = x[:3], x[3:6], x[10:]
-        Q = np.eye(3) * self.state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return (r - self.system.r_I_final).T @ Q @ (r - self.system.r_I_final) + \
                (v - self.system.v_I_final).T @ Q @ (v - self.system.v_I_final) + \
                (w - self.system.w_B_final).T @ Q @ (w - self.system.w_B_final)
@@ -102,7 +102,7 @@ class IntrinsicSCvx(SCvx):
             cvx.Expression: Convex final stage cost expression.
         """
         r, v, w = x[:3], x[3:6], x[10:]
-        Q = np.eye(3) * self.state_coeff
+        Q = np.eye(3) * self.final_state_coeff
         return cvx.quad_form(r - self.system.r_I_final, Q) + \
                cvx.quad_form(v - self.system.v_I_final, Q) + \
                cvx.quad_form(w - self.system.w_B_final, Q)
@@ -144,7 +144,8 @@ class IntrinsicSCvx(SCvx):
         cost = self.cvx_trajectory_cost(x + eta_adjusted, u + xi)
         for k in range(self.K):
             cost += self.penalty_coeff * cvx.norm(v[:, k], 1)
-            cost += self.penalty_coeff * cvx.max(s[:, k])
+            #cost += self.penalty_coeff * cvx.max(s[:, k])
+            cost += self.penalty_coeff * cvx.norm(s[:,k], 1)
         return cost
 
     def linearized_trajectory_cost(self, x: np.ndarray, u: np.ndarray, eta: np.ndarray, xi: np.ndarray, v: np.ndarray, s: np.ndarray) -> float:
@@ -167,7 +168,8 @@ class IntrinsicSCvx(SCvx):
         cost = self.trajectory_cost(x + eta_adjusted, u + xi)
         for k in range(self.K):
             cost += self.penalty_coeff * np.linalg.norm(v[:, k], 1)
-            cost += self.penalty_coeff * np.max(s[:, k])
+            #cost += self.penalty_coeff * np.max(s[:, k])
+            cost += self.penalty_coeff * np.linalg.norm(s[:,k], 1)
         return cost
 
     def penalized_trajectory_cost(self, x: np.ndarray, u: np.ndarray) -> float:
@@ -190,7 +192,8 @@ class IntrinsicSCvx(SCvx):
             xkp1_frame = frame(xkp1)
             e_coords = np.linalg.pinv(xkp1_frame) @ e  # Project to intrinsic coordinates
             cost += self.penalty_coeff * np.linalg.norm(e_coords, 1)
-            cost += self.penalty_coeff * np.maximum(np.max(sigmak), 0)
+            #cost += self.penalty_coeff * np.maximum(np.max(sigmak), 0)
+            cost += self.penalty_coeff * np.linalg.norm(np.maximum(sigmak, 0), 1)
         return cost
     
 
@@ -294,7 +297,8 @@ class IntrinsicSCvx_FixedFinalAttitude(IntrinsicSCvx):
         cost = self.local_cost(x, u, eta, xi)
         for k in range(self.K):
             cost += self.penalty_coeff * np.linalg.norm(v[:, k], 1)
-            cost += self.penalty_coeff * np.max(s[:, k])
+            #cost += self.penalty_coeff * np.max(s[:, k])
+            cost += self.penalty_coeff * np.linalg.norm(s[:,k], 1)
         return cost
     
     def local_cost(self, x, u, eta, xi):
@@ -360,7 +364,8 @@ class IntrinsicSCvx_FixedFinalAttitude(IntrinsicSCvx):
         cost = self.cvx_local_cost(x, u, eta, xi)
         for k in range(self.K):
             cost += self.penalty_coeff * cvx.norm(v[:, k], 1)
-            cost += self.penalty_coeff * cvx.max(cvx.maximum(0, s[:, k]))
+            #cost += self.penalty_coeff * cvx.max(cvx.maximum(0, s[:, k]))
+            cost += self.penalty_coeff * cvx.norm(s[:,k], 1)
         return cost
     
     def cvx_local_cost(self, x, u, eta, xi):
@@ -442,5 +447,6 @@ class IntrinsicSCvx_FixedFinalAttitude(IntrinsicSCvx):
             xkp1_frame = frame(xkp1)
             e_coords = np.linalg.pinv(xkp1_frame) @ e  # Project to intrinsic coordinates
             cost += self.penalty_coeff * np.linalg.norm(e_coords, 1)
-            cost += self.penalty_coeff * np.max(np.maximum(sigmak, 0))
+            #cost += self.penalty_coeff * np.max(np.maximum(sigmak, 0))
+            cost += self.penalty_coeff * np.linalg.norm(np.maximum(sigmak, 0), 1)
         return cost
